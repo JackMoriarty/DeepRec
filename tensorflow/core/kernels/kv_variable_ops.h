@@ -226,44 +226,47 @@ Status DumpEmbeddingValues(EmbeddingVar<K, V>* ev,
   // so that we can dynamically load ev with changed partition number
   int64 filter_freq = ev->MinFreq();
   for (size_t i = 0; i < tot_key_list.size(); i++) {
-    for (int partid = 0; partid < kSavedPartitionNum; partid++) {
-      if (tot_key_list[i] % kSavedPartitionNum == partid) {
-        if (tot_valueptr_list[i] == reinterpret_cast<V*>(-1)) {
-            // only forward, no backward, bypass
-        } else if (tot_valueptr_list[i] == nullptr) {
-          key_filter_list_parts[partid].push_back(tot_key_list[i]);
-        } else {
-          key_list_parts[partid].push_back(tot_key_list[i]);
-          valueptr_list_parts[partid].push_back(tot_valueptr_list[i]);
-        }
-        break;
-      }
+    if (tot_key_list[i] < 0) {
+      LOG(WARNING) << "find negative key [" << tot_key_list[i] << "] in EV ("
+                   << tensor_key << ")";
+      continue;
+    }
+    int partid = tot_key_list[i] % kSavedPartitionNum;
+    if (tot_valueptr_list[i] == reinterpret_cast<V*>(-1)) {
+      // only forward, no backward, bypass
+    } else if (tot_valueptr_list[i] == nullptr) {
+      key_filter_list_parts[partid].push_back(tot_key_list[i]);
+    } else {
+      key_list_parts[partid].push_back(tot_key_list[i]);
+      valueptr_list_parts[partid].push_back(tot_valueptr_list[i]);
     }
   }
 
   for (size_t i = 0; i < tot_version_list.size(); i++) {
-    for (int partid = 0; partid < kSavedPartitionNum; partid++) {
-      if (tot_key_list[i] % kSavedPartitionNum == partid) {
-        if (tot_valueptr_list[i] == nullptr) {
-          version_filter_list_parts[partid].push_back(tot_version_list[i]);
-        } else {
-          version_list_parts[partid].push_back(tot_version_list[i]);
-        }
-        break;
-      }
+    if (tot_key_list[i] < 0) {
+      LOG(WARNING) << "find negative key [" << tot_key_list[i] << "] in EV("
+                   << tensor_key << ")";
+      continue;
+    }
+    int partid = tot_key_list[i] % kSavedPartitionNum;
+    if (tot_valueptr_list[i] == nullptr) {
+      version_filter_list_parts[partid].push_back(tot_version_list[i]);
+    } else {
+      version_list_parts[partid].push_back(tot_version_list[i]);
     }
   }
   
   for (size_t i = 0; i < tot_freq_list.size(); i++) {
-    for (int partid = 0; partid < kSavedPartitionNum; partid++) {
-      if (tot_key_list[i] % kSavedPartitionNum == partid) {
-        if (tot_valueptr_list[i] == nullptr) {
-          freq_filter_list_parts[partid].push_back(tot_freq_list[i]);
-        } else {
-          freq_list_parts[partid].push_back(tot_freq_list[i]);
-        }
-        break;
-      }
+    if (tot_key_list[i] < 0) {
+      LOG(WARNING) << "find negative key [" << tot_key_list[i] << "] in EV("
+                   << tensor_key << ")";
+      continue;
+    }
+    int partid = tot_key_list[i] % kSavedPartitionNum;
+    if (tot_valueptr_list[i] == nullptr) {
+      freq_filter_list_parts[partid].push_back(tot_freq_list[i]);
+    } else {
+      freq_list_parts[partid].push_back(tot_freq_list[i]);
     }
   }
   // LOG(INFO) << "EV:" << tensor_key << ", key_list_parts:" << key_list_parts.size();
