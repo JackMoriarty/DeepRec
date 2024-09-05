@@ -40,6 +40,22 @@ namespace {
 }
 
 template<class T>
+std::vector<T> concatenateVectors(const std::vector<std::vector<T> >& vectors) {
+    size_t totalSize = 0;
+    for (const auto& vec : vectors) {
+        totalSize += vec.size();
+    }
+
+    std::vector<T> result(totalSize);
+    auto it = result.begin();
+    for (const auto& vec : vectors) {
+        it = std::copy(vec.begin(), vec.end(), it);
+    }
+
+    return result;
+}
+
+template<class T>
 class EVKeyDumpIterator: public  DumpIterator<T> {
  public:
   EVKeyDumpIterator(std::vector<T>& key_list):key_list_(key_list) {
@@ -275,6 +291,23 @@ Status DumpEmbeddingValues(EmbeddingVar<K, V>* ev,
   part_offset_flat(0) = 0;
   part_filter_offset[0] = 0;
   int ptsize = 0;
+
+  for (int partid = 0; partid < kSavedPartitionNum; partid++) {
+    std::vector<K>& key_list = key_list_parts[partid];
+    std::vector<K>& key_filter_list = key_filter_list_parts[partid];
+    ptsize += key_list.size();
+    part_offset_flat(partid + 1) = part_offset_flat(partid) + key_list.size();
+    part_filter_offset[partid + 1] = part_filter_offset[partid] + key_filter_list.size();
+  }
+  partitioned_tot_key_list=concatenateVectors(key_list_parts);
+  partitioned_tot_valueptr_list=concatenateVectors(valueptr_list_parts);
+  partitioned_tot_version_list=concatenateVectors(version_list_parts);
+  partitioned_tot_freq_list=concatenateVectors(freq_list_parts);
+  partitioned_tot_key_filter_list=concatenateVectors(key_filter_list_parts);
+  partitioned_tot_version_filter_list=concatenateVectors(version_filter_list_parts);
+  partitioned_tot_freq_filter_list=concatenateVectors(freq_filter_list_parts);
+
+/*
   for (int partid = 0; partid < kSavedPartitionNum; partid++) {
     std::vector<K>& key_list = key_list_parts[partid];
     std::vector<V* >& valueptr_list = valueptr_list_parts[partid];
@@ -309,6 +342,7 @@ Status DumpEmbeddingValues(EmbeddingVar<K, V>* ev,
     part_offset_flat(partid + 1) = part_offset_flat(partid) + key_list.size();
     part_filter_offset[partid + 1] = part_filter_offset[partid] + key_filter_list.size();
   }
+*/
   // TODO: DB iterator not support partition_offset
   writer->Add(tensor_key + "-partition_offset", *part_offset_tensor);
   for(int i = 0; i <  kSavedPartitionNum + 1; i++) {
